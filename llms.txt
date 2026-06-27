@@ -1,0 +1,76 @@
+# rasuvaeff/result
+
+Typed `Result<T, E>` and `Option<T>` primitives for PHP 8.3+.
+
+## Install
+
+```bash
+composer require rasuvaeff/result
+```
+
+## Rules
+
+- Namespace: `Rasuvaeff\Result`.
+- No runtime dependencies.
+- `Result::ok(null)` and `Option::some(null)` are valid payloads.
+- `Option::fromNullable(null)` returns `None`; other values return `Some`.
+- `unwrap()` throws `Rasuvaeff\Result\UnwrapException` on `Err` or `None`.
+- `Result::fromThrowable()` catches `Throwable` only around the supplied closure.
+
+## API reference
+
+```php
+use Rasuvaeff\Result\Option;
+use Rasuvaeff\Result\Result;
+
+$ok = Result::ok(value: 42);                  // Result<int, never>
+$err = Result::err(error: 'failed');          // Result<never, string>
+
+$safe = Result::fromThrowable(
+    fn (): int => random_int(1, 10),
+);                                            // Result<int, Throwable>
+
+$value = $ok
+    ->map(fn (int $n): string => (string) $n)
+    ->unwrapOr(default: '0');
+
+$message = $err->match(
+    ok: fn (int $n): string => "ok: {$n}",
+    err: fn (string $e): string => "err: {$e}",
+);
+
+$option = Option::fromNullable(value: getenv('APP_ENV') ?: null);
+
+$result = $option
+    ->filter(fn (string $env): bool => $env !== '')
+    ->toResult(error: 'APP_ENV is missing');
+```
+
+### Result methods
+
+- `Result::ok(mixed $value): Result`
+- `Result::err(mixed $error): Result`
+- `Result::fromThrowable(Closure $fn): Result`
+- `isOk(): bool`
+- `isErr(): bool`
+- `unwrap(): mixed`
+- `unwrapOr(mixed $default): mixed`
+- `map(Closure $fn): Result`
+- `mapErr(Closure $fn): Result`
+- `flatMap(Closure $fn): Result`
+- `match(Closure $ok, Closure $err): mixed`
+- `value(): mixed`
+- `error(): mixed`
+
+### Option methods
+
+- `Option::some(mixed $value): Option`
+- `Option::none(): Option`
+- `Option::fromNullable(mixed $value): Option`
+- `isSome(): bool`
+- `isNone(): bool`
+- `unwrap(): mixed`
+- `unwrapOr(mixed $default): mixed`
+- `map(Closure $fn): Option`
+- `filter(Closure $predicate): Option`
+- `toResult(mixed $error): Result`
