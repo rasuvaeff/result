@@ -16,6 +16,7 @@ composer require rasuvaeff/result
 - `Option::fromNullable(null)` returns `None`; other values return `Some`.
 - `unwrap()` throws `Rasuvaeff\Result\UnwrapException` on `Err` or `None`.
 - `Result::fromThrowable()` catches `Throwable` only around the supplied closure.
+- `flatMap()` keeps the error type fixed: the returned `Result` must share the same `E`.
 
 ## API reference
 

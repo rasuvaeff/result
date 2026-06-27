@@ -76,6 +76,10 @@ $message = $result->match(
 | `match(ok: $ok, err: $err)` | Folds both branches to one return value. |
 | `value()` / `error()` | Returns the branch payload or `null`. |
 
+`flatMap()` keeps the error channel fixed: the `Result` returned by the closure
+must carry the same `E` error type as the receiver. Use `mapErr()` first if you
+need to align error types before chaining.
+
 ### Option
 
 `Option<T>` represents either `Some<T>` or `None`. `Option::fromNullable()`

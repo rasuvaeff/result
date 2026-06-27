@@ -198,11 +198,7 @@ final readonly class Result
      */
     public function value(): mixed
     {
-        if ($this->ok === false) {
-            return null;
-        }
-
-        return $this->valuePayload();
+        return $this->ok ? $this->valuePayload() : null;
     }
 
     /**
@@ -210,11 +206,7 @@ final readonly class Result
      */
     public function error(): mixed
     {
-        if ($this->ok) {
-            return null;
-        }
-
-        return $this->errorPayload();
+        return $this->ok ? null : $this->errorPayload();
     }
 
     /**
