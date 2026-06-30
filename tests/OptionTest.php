@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Rasuvaeff\Result\Tests;
 
+use Rasuvaeff\PropertyTesting\ArbitraryInterface;
+use Rasuvaeff\PropertyTesting\Gen;
+use Rasuvaeff\PropertyTesting\Property;
 use Rasuvaeff\Result\Option;
 use Rasuvaeff\Result\Result;
 use Rasuvaeff\Result\UnwrapException;
@@ -136,5 +139,90 @@ final class OptionTest
 
         Assert::true($result->isErr());
         Assert::same($result->error(), 'missing');
+    }
+
+    #[Property(runs: 300)]
+    public function fromNullableIsSomeExactlyWhenNotNull(?int $value): void
+    {
+        Assert::same(Option::fromNullable(value: $value)->isSome(), $value !== null);
+    }
+
+    /** @return array<string, ArbitraryInterface> */
+    private function fromNullableIsSomeExactlyWhenNotNullGenerators(): array
+    {
+        return ['value' => Gen::nullable(Gen::int())];
+    }
+
+    #[Property(runs: 300)]
+    public function mapWithIdentityKeepsSomeValue(int $value): void
+    {
+        Assert::same(Option::some(value: $value)->map(fn(int $v): int => $v)->unwrap(), $value);
+    }
+
+    /** @return array<string, ArbitraryInterface> */
+    private function mapWithIdentityKeepsSomeValueGenerators(): array
+    {
+        return ['value' => Gen::int()];
+    }
+
+    #[Property(runs: 300)]
+    public function mapComposesLikeOneStep(int $value, int $add, int $mul): void
+    {
+        $twoStep = Option::some(value: $value)
+            ->map(fn(int $v): int => $v + $add)
+            ->map(fn(int $v): int => $v * $mul)
+            ->unwrap();
+        $oneStep = Option::some(value: $value)
+            ->map(fn(int $v): int => ($v + $add) * $mul)
+            ->unwrap();
+
+        Assert::same($twoStep, $oneStep);
+    }
+
+    /** @return array<string, ArbitraryInterface> */
+    private function mapComposesLikeOneStepGenerators(): array
+    {
+        return [
+            'value' => Gen::intBetween(-1_000_000, 1_000_000),
+            'add' => Gen::intBetween(-1_000_000, 1_000_000),
+            'mul' => Gen::intBetween(-1_000, 1_000),
+        ];
+    }
+
+    #[Property(runs: 300)]
+    public function filterKeepsSomeExactlyWhenPredicateHolds(int $value, bool $keep): void
+    {
+        $option = Option::some(value: $value)->filter(fn(int $v): bool => $keep);
+
+        Assert::same($option->isSome(), $keep);
+    }
+
+    /** @return array<string, ArbitraryInterface> */
+    private function filterKeepsSomeExactlyWhenPredicateHoldsGenerators(): array
+    {
+        return [
+            'value' => Gen::int(),
+            'keep' => Gen::bool(),
+        ];
+    }
+
+    #[Property(runs: 300)]
+    public function toResultMirrorsPresence(bool $present, int $value, int $error): void
+    {
+        $option = $present ? Option::some(value: $value) : Option::none();
+        $result = $option->toResult(error: $error);
+
+        Assert::same($result->isOk(), $present);
+        Assert::same($present ? $result->value() : $result->error(), $present ? $value : $error);
+    }
+
+    /** @return array<string, ArbitraryInterface> */
+    private function toResultMirrorsPresenceGenerators(): array
+    {
+        return [
+            'present' => Gen::bool(),
+            'value' => Gen::int(),
+            'error' => Gen::int(),
+        ];
     }
 }
