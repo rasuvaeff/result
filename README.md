@@ -7,6 +7,7 @@
 [![Psalm level](https://img.shields.io/badge/psalm-level_1-blue.svg)](https://github.com/rasuvaeff/result/actions/workflows/static-analysis.yml)
 [![PHP](https://img.shields.io/packagist/dependency-v/rasuvaeff/result/php)](https://packagist.org/packages/rasuvaeff/result)
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE.md)
+[Русская версия](README.ru.md)
 
 Typed `Result<T, E>` and `Option<T>` primitives for PHP 8.3+. The package is
 framework-free and designed to keep Psalm/PHPStan generic inference useful in
