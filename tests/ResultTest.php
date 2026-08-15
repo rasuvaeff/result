@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Rasuvaeff\Result\Tests;
 
 use Rasuvaeff\PropertyTesting\ArbitraryInterface;
+use Rasuvaeff\PropertyTesting\Classify;
 use Rasuvaeff\PropertyTesting\Gen;
 use Rasuvaeff\PropertyTesting\Property;
 use Rasuvaeff\Result\Result;
@@ -182,7 +183,7 @@ final class ResultTest
     }
 
     /** @return array<string, ArbitraryInterface> */
-    private function mapWithIdentityKeepsValueGenerators(): array
+    public static function mapWithIdentityKeepsValueGenerators(): array
     {
         return ['value' => Gen::int()];
     }
@@ -202,7 +203,7 @@ final class ResultTest
     }
 
     /** @return array<string, ArbitraryInterface> */
-    private function mapComposesLikeOneStepGenerators(): array
+    public static function mapComposesLikeOneStepGenerators(): array
     {
         return [
             'value' => Gen::intBetween(-1_000_000, 1_000_000),
@@ -221,7 +222,7 @@ final class ResultTest
     }
 
     /** @return array<string, ArbitraryInterface> */
-    private function mapNeverTouchesErrGenerators(): array
+    public static function mapNeverTouchesErrGenerators(): array
     {
         return [
             'error' => Gen::int(),
@@ -240,7 +241,7 @@ final class ResultTest
     }
 
     /** @return array<string, ArbitraryInterface> */
-    private function flatMapOkObeysLeftIdentityGenerators(): array
+    public static function flatMapOkObeysLeftIdentityGenerators(): array
     {
         return [
             'value' => Gen::intBetween(-1_000_000, 1_000_000),
@@ -258,7 +259,7 @@ final class ResultTest
     }
 
     /** @return array<string, ArbitraryInterface> */
-    private function isOkIsAlwaysOppositeOfIsErrGenerators(): array
+    public static function isOkIsAlwaysOppositeOfIsErrGenerators(): array
     {
         return [
             'ok' => Gen::bool(),
@@ -275,12 +276,171 @@ final class ResultTest
     }
 
     /** @return array<string, ArbitraryInterface> */
-    private function unwrapOrPicksValueOrDefaultByBranchGenerators(): array
+    public static function unwrapOrPicksValueOrDefaultByBranchGenerators(): array
     {
         return [
             'ok' => Gen::bool(),
             'payload' => Gen::int(),
             'default' => Gen::int(),
+        ];
+    }
+
+    #[Property(runs: 300)]
+    public function flatMapObeysRightIdentity(bool $ok, int $payload): void
+    {
+        $result = $ok ? Result::ok(value: $payload) : Result::err(error: $payload);
+
+        Classify::cover($ok, 'ok', 30.0);
+        Classify::cover(!$ok, 'err', 30.0);
+
+        $wrapped = $result->flatMap(static fn(int $v): Result => Result::ok(value: $v));
+
+        Assert::same($wrapped->isOk(), $result->isOk());
+        Assert::same($wrapped->value(), $result->value());
+        Assert::same($wrapped->error(), $result->error());
+    }
+
+    /** @return array<string, ArbitraryInterface> */
+    public static function flatMapObeysRightIdentityGenerators(): array
+    {
+        return [
+            'ok' => Gen::bool(),
+            'payload' => Gen::int(),
+        ];
+    }
+
+    /** @return iterable<string, array{bool, int}> */
+    public static function flatMapObeysRightIdentityExamples(): iterable
+    {
+        yield 'ok carrying zero' => [true, 0];
+        yield 'err carrying zero' => [false, 0];
+        yield 'ok at the integer ceiling' => [true, PHP_INT_MAX];
+        yield 'err at the integer floor' => [false, PHP_INT_MIN];
+    }
+
+    #[Property(runs: 300)]
+    public function flatMapIsAssociative(bool $ok, int $payload, int $add, int $mul): void
+    {
+        $result = $ok ? Result::ok(value: $payload) : Result::err(error: $payload);
+        $f = static fn(int $v): Result => Result::ok(value: $v + $add);
+        $g = static fn(int $v): Result => Result::ok(value: $v * $mul);
+
+        Classify::cover($ok, 'ok', 30.0);
+        Classify::cover(!$ok, 'err short-circuits both spellings', 30.0);
+
+        $leftAssociated = $result->flatMap($f)->flatMap($g);
+        $rightAssociated = $result->flatMap(static fn(int $v): Result => $f($v)->flatMap($g));
+
+        Assert::same($leftAssociated->value(), $rightAssociated->value());
+        Assert::same($leftAssociated->error(), $rightAssociated->error());
+    }
+
+    /** @return array<string, ArbitraryInterface> */
+    public static function flatMapIsAssociativeGenerators(): array
+    {
+        // Bounded so that (value + add) * mul stays an int: PHP promotes an
+        // overflowing product to float, and float equality would make the law
+        // a statement about IEEE rounding instead of about flatMap.
+        return [
+            'ok' => Gen::bool(),
+            'payload' => Gen::intBetween(-1_000_000, 1_000_000),
+            'add' => Gen::intBetween(-1_000_000, 1_000_000),
+            'mul' => Gen::intBetween(-1_000, 1_000),
+        ];
+    }
+
+    #[Property(runs: 300)]
+    public function mapErrIsTheMirrorImageOfMap(bool $ok, int $payload, int $delta): void
+    {
+        $result = $ok ? Result::ok(value: $payload) : Result::err(error: $payload);
+
+        Classify::cover($ok, 'ok', 30.0);
+        Classify::cover(!$ok, 'err', 30.0);
+
+        $mapped = $result->mapErr(static fn(int $e): int => $e + $delta);
+
+        Assert::same($mapped->isOk(), $ok);
+        Assert::same($mapped->value(), $ok ? $payload : null);
+        Assert::same($mapped->error(), $ok ? null : $payload + $delta);
+    }
+
+    /** @return array<string, ArbitraryInterface> */
+    public static function mapErrIsTheMirrorImageOfMapGenerators(): array
+    {
+        return [
+            'ok' => Gen::bool(),
+            'payload' => Gen::intBetween(-1_000_000, 1_000_000),
+            'delta' => Gen::intBetween(-1_000_000, 1_000_000),
+        ];
+    }
+
+    #[Property(runs: 300)]
+    public function matchRunsExactlyOneArm(bool $ok, int $payload): void
+    {
+        $result = $ok ? Result::ok(value: $payload) : Result::err(error: $payload);
+        $okCalls = 0;
+        $errCalls = 0;
+
+        Classify::cover($ok, 'ok arm', 30.0);
+        Classify::cover(!$ok, 'err arm', 30.0);
+
+        $returned = $result->match(
+            ok: function (int $v) use (&$okCalls): string {
+                ++$okCalls;
+
+                return "ok:{$v}";
+            },
+            err: function (int $e) use (&$errCalls): string {
+                ++$errCalls;
+
+                return "err:{$e}";
+            },
+        );
+
+        Assert::same($okCalls + $errCalls, 1);
+        Assert::same($returned, $ok ? "ok:{$payload}" : "err:{$payload}");
+    }
+
+    /** @return array<string, ArbitraryInterface> */
+    public static function matchRunsExactlyOneArmGenerators(): array
+    {
+        return [
+            'ok' => Gen::bool(),
+            'payload' => Gen::int(),
+        ];
+    }
+
+    #[Property(runs: 200)]
+    public function fromThrowableIsErrExactlyWhenTheClosureThrows(bool $throws, int $payload): void
+    {
+        Classify::cover($throws, 'closure throws', 30.0);
+        Classify::cover(!$throws, 'closure returns', 30.0);
+
+        $result = Result::fromThrowable(
+            static fn(): int => $throws
+                ? throw new \RuntimeException(message: "boom:{$payload}")
+                : $payload,
+        );
+
+        Assert::same($result->isErr(), $throws);
+
+        // match() is the only way to read the payload back without asking
+        // psalm to trust a mixed return: each arm is typed by the branch.
+        Assert::same(
+            $result->match(
+                ok: static fn(int $value): string => "returned:{$value}",
+                err: static fn(\Throwable $error): string => $error->getMessage(),
+            ),
+            $throws ? "boom:{$payload}" : "returned:{$payload}",
+        );
+    }
+
+    /** @return array<string, ArbitraryInterface> */
+    public static function fromThrowableIsErrExactlyWhenTheClosureThrowsGenerators(): array
+    {
+        return [
+            'throws' => Gen::bool(),
+            'payload' => Gen::int(),
         ];
     }
 }
