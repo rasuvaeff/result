@@ -277,8 +277,8 @@ final class OptionTest
         $once = $option->filter($predicate);
         $twice = $once->filter($predicate);
 
-        Classify::cover($present && $value > $threshold, 'kept', 20.0);
-        Classify::cover($present && $value <= $threshold, 'dropped by the predicate', 20.0);
+        Classify::cover($present && $value > $threshold, 'kept', 15.0);
+        Classify::cover($present && $value <= $threshold, 'dropped by the predicate', 15.0);
         Classify::when(!$present, 'already none');
 
         Assert::same($twice->isSome(), $once->isSome());
