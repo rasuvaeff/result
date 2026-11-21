@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE.md)
 [Русская версия](README.ru.md)
 
-Typed `Result<T, E>` and `Option<T>` primitives for PHP 8.3+. The package is
+Typed `Result<T, E>` and `Option<T>` primitives for PHP 8.3 – 8.6. The package is
 framework-free and designed to keep Psalm/PHPStan generic inference useful in
 application code.
 
@@ -17,7 +17,7 @@ application code.
 
 ## Requirements
 
-- PHP 8.3+
+- PHP 8.3 – 8.6
 - No runtime dependencies
 
 ## Installation
