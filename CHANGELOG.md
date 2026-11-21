@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.2 — 2026-11-21
 
 - `composer mutation` now runs `infection --with-uncovered`, so mutation testing
   counts code that tests execute without naming it in `#[Covers]`;
