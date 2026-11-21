@@ -1,6 +1,6 @@
 # rasuvaeff/result
 
-Typed `Result<T, E>` and `Option<T>` primitives for PHP 8.3+.
+Typed `Result<T, E>` and `Option<T>` primitives for PHP 8.3 – 8.6.
 
 ## Install
 

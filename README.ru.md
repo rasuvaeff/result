@@ -9,7 +9,7 @@
 [![License](https://img.shields.io/badge/license-BSD--3--Clause-blue.svg)](LICENSE.md)
 [English version](README.md)
 
-Типизированные примитивы `Result<T, E>` и `Option<T>` для PHP 8.3+. Пакет не
+Типизированные примитивы `Result<T, E>` и `Option<T>` для PHP 8.3 – 8.6. Пакет не
 зависит от фреймворков и спроектирован так, чтобы generic-вывод Psalm/PHPStan
 оставался полезным в прикладном коде.
 
@@ -18,7 +18,7 @@
 
 ## Требования
 
-- PHP 8.3+
+- PHP 8.3 – 8.6
 - Нет runtime-зависимостей
 
 ## Установка
